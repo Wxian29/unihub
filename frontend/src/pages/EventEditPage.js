@@ -1,0 +1,414 @@
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  fetchEventDetail, 
+  updateEvent, 
+  clearError, 
+  clearSuccessMessage 
+} from '../features/event/eventSlice';
+import { fetchCommunities } from '../features/community/communitySlice';
+import './EventEditPage.css';
+
+const EventEditPage = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { eventId } = useParams();
+  const { currentEvent, loading, error, successMessage } = useSelector((state) => state.event);
+  const { communities } = useSelector((state) => state.community);
+  const { user } = useSelector((state) => state.auth);
+
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    community: '',
+    start_time: '',
+    end_time: '',
+    location: '',
+    max_participants: '',
+    status: 'draft'
+  });
+
+  const [errors, setErrors] = useState({});
+  const [imagePreview, setImagePreview] = useState(null);
+  const [newImage, setNewImage] = useState(null);
+
+  useEffect(() => {
+    if (eventId) {
+      dispatch(fetchEventDetail(eventId));
+    }
+    dispatch(fetchCommunities());
+    
+    return () => {
+      dispatch(clearError());
+      dispatch(clearSuccessMessage());
+    };
+  }, [dispatch, eventId]);
+
+  useEffect(() => {
+    if (currentEvent) {
+      setFormData({
+        title: currentEvent.title || '',
+        description: currentEvent.description || '',
+        community: currentEvent.community || '',
+        start_time: currentEvent.start_time ? currentEvent.start_time.slice(0, 16) : '',
+        end_time: currentEvent.end_time ? currentEvent.end_time.slice(0, 16) : '',
+        location: currentEvent.location || '',
+        max_participants: currentEvent.max_participants || '',
+        status: currentEvent.status || 'draft'
+      });
+      
+      if (currentEvent.cover_image) {
+        setImagePreview(currentEvent.cover_image);
+      }
+    }
+  }, [currentEvent]);
+
+  useEffect(() => {
+    if (successMessage) {
+      setTimeout(() => {
+        navigate(`/events/${eventId}`);
+      }, 1500);
+    }
+  }, [successMessage, navigate, eventId]);
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.title.trim()) {
+      newErrors.title = 'Please enter the event title';
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'Please enter the event description';
+    }
+
+    if (!formData.community) {
+      newErrors.community = 'Please select a community';
+    }
+
+    if (!formData.start_time) {
+      newErrors.start_time = 'Please select the start time';
+    }
+
+    if (!formData.end_time) {
+      newErrors.end_time = 'Please select the end time';
+    }
+
+    if (formData.start_time && formData.end_time) {
+      const startTime = new Date(formData.start_time);
+      const endTime = new Date(formData.end_time);
+      if (startTime >= endTime) {
+        newErrors.end_time = 'End time must be after start time';
+      }
+    }
+
+    if (!formData.location.trim()) {
+      newErrors.location = 'Please enter the event location';
+    }
+
+    if (formData.max_participants && parseInt(formData.max_participants) <= 0) {
+      newErrors.max_participants = 'Max participants must be greater than 0';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({
+          ...prev,
+          cover_image: 'Please select an image file'
+        }));
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({
+          ...prev,
+          cover_image: 'Image size must not exceed 5MB'
+        }));
+        return;
+      }
+
+      setNewImage(file);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+
+      if (errors.cover_image) {
+        setErrors(prev => ({
+          ...prev,
+          cover_image: ''
+        }));
+      }
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    const submitData = new FormData();
+    Object.keys(formData).forEach(key => {
+      if (formData[key] !== null && formData[key] !== '') {
+        submitData.append(key, formData[key]);
+      }
+    });
+
+    if (newImage) {
+      submitData.append('cover_image', newImage);
+    }
+
+    dispatch(updateEvent({ eventId, eventData: submitData }));
+  };
+
+  const handleCancel = () => {
+    navigate(`/events/${eventId}`);
+  };
+
+  if (!user) {
+    return (
+      <div className="event-edit-page">
+        <div className="container">
+          <div className="error-message">Please log in before editing the event</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentEvent) {
+    return (
+      <div className="event-edit-page">
+        <div className="container">
+          <div className="loading">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  const isCreator = user && currentEvent.creator === user.id;
+  const canEdit = isCreator || user?.is_staff;
+
+  if (!canEdit) {
+    return (
+      <div className="event-edit-page">
+        <div className="container">
+          <div className="error-message">You do not have permission to edit this event</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="event-edit-page">
+      <div className="container">
+        {error && (
+          <div className="alert alert-danger" onClick={() => dispatch(clearError())}>
+            {error}
+          </div>
+        )}
+        
+        {successMessage && (
+          <div className="alert alert-success">
+            {successMessage}
+          </div>
+        )}
+
+        <div className="edit-header">
+          <h1>Edit Event</h1>
+          <p>Modify event information</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="event-form">
+          <div className="form-group">
+            <label htmlFor="title">Event Title *</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              className={errors.title ? 'error' : ''}
+              placeholder="Enter event title"
+            />
+            {errors.title && <span className="error-message">{errors.title}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description">Event Description *</label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              className={errors.description ? 'error' : ''}
+              placeholder="Please describe the event details, process, etc."
+              rows="6"
+            />
+            {errors.description && <span className="error-message">{errors.description}</span>}
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="community">Community *</label>
+              <select
+                id="community"
+                name="community"
+                value={formData.community}
+                onChange={handleInputChange}
+                className={errors.community ? 'error' : ''}
+              >
+                <option value="">Select a community</option>
+                {communities.map(community => (
+                  <option key={community.id} value={community.id}>
+                    {community.name}
+                  </option>
+                ))}
+              </select>
+              {errors.community && <span className="error-message">{errors.community}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="location">Location *</label>
+              <input
+                type="text"
+                id="location"
+                name="location"
+                value={formData.location}
+                onChange={handleInputChange}
+                className={errors.location ? 'error' : ''}
+                placeholder="Enter event location"
+              />
+              {errors.location && <span className="error-message">{errors.location}</span>}
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="start_time">Start Time *</label>
+              <input
+                type="datetime-local"
+                id="start_time"
+                name="start_time"
+                value={formData.start_time}
+                onChange={handleInputChange}
+                className={errors.start_time ? 'error' : ''}
+              />
+              {errors.start_time && <span className="error-message">{errors.start_time}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="end_time">End Time *</label>
+              <input
+                type="datetime-local"
+                id="end_time"
+                name="end_time"
+                value={formData.end_time}
+                onChange={handleInputChange}
+                className={errors.end_time ? 'error' : ''}
+              />
+              {errors.end_time && <span className="error-message">{errors.end_time}</span>}
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="max_participants">Max Participants</label>
+              <input
+                type="number"
+                id="max_participants"
+                name="max_participants"
+                value={formData.max_participants}
+                onChange={handleInputChange}
+                className={errors.max_participants ? 'error' : ''}
+                placeholder="Leave blank for unlimited"
+                min="1"
+              />
+              {errors.max_participants && <span className="error-message">{errors.max_participants}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="status">Event Status</label>
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleInputChange}
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="cover_image">Cover Image</label>
+            <input
+              type="file"
+              id="cover_image"
+              name="cover_image"
+              onChange={handleImageChange}
+              accept="image/*"
+              className={errors.cover_image ? 'error' : ''}
+            />
+            {errors.cover_image && <span className="error-message">{errors.cover_image}</span>}
+            {imagePreview && (
+              <div className="image-preview">
+                <img src={imagePreview} alt="Preview" />
+                <button 
+                  type="button" 
+                  className="remove-image"
+                  onClick={() => {
+                    setImagePreview(null);
+                    setNewImage(null);
+                  }}
+                >
+                  Remove Image
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="form-actions">
+            <button type="button" className="btn btn-secondary" onClick={handleCancel}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default EventEditPage; 

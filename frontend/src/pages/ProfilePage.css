@@ -1,0 +1,105 @@
+.profile-page {
+  padding: 2rem 0;
+}
+
+.profile-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.profile-section {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.profile-section h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 0.5rem;
+}
+
+.profile-info {
+  display: grid;
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-item label {
+  font-weight: 600;
+  color: #555;
+  min-width: 120px;
+  margin-right: 1rem;
+}
+
+.info-item span {
+  color: #333;
+  flex: 1;
+}
+
+.auth-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.error-message {
+  text-align: center;
+  padding: 2rem;
+  color: #dc3545;
+}
+
+@media (max-width: 768px) {
+  .profile-section {
+    padding: 1rem;
+  }
+  
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .info-item label {
+    min-width: auto;
+    margin-right: 0;
+  }
+} 

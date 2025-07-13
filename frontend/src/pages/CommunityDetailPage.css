@@ -1,0 +1,254 @@
+.community-detail-page {
+  padding: 2rem 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.community-header {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.community-info h1 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.community-description {
+  color: #666;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.community-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.community-stats span {
+  background: #667eea;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.community-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 150px;
+}
+
+.community-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+.posts-section,
+.members-section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.posts-section h2,
+.members-section h2 {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.post-card {
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  padding: 1rem;
+  background: white;
+}
+
+.post-header {
+  margin-bottom: 0.5rem;
+}
+
+.post-author {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.author-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.post-time {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.post-content {
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.post-image {
+  margin-top: 1rem;
+}
+
+.post-image img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.no-posts {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: #f8f9fa;
+}
+
+.member-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.member-role {
+  background: #667eea;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.more-members {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+.loading {
+  text-align: center;
+  color: white;
+  font-size: 1.2rem;
+  padding: 2rem;
+}
+
+.error-message {
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff6b6b;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #5a6fd8;
+  transform: translateY(-2px);
+}
+
+.btn-outline {
+  background: transparent;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+@media (max-width: 768px) {
+  .community-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .community-info h1 {
+    font-size: 2rem;
+  }
+  
+  .community-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .community-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .community-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+} 

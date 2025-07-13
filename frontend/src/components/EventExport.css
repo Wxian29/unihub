@@ -1,0 +1,80 @@
+.event-export {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.export-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.export-header h4 {
+  margin: 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.export-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.format-select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  background: white;
+}
+
+.export-btn {
+  padding: 8px 16px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #1e7e34;
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.export-info {
+  color: #666;
+  font-size: 14px;
+}
+
+.export-info p {
+  margin: 5px 0;
+}
+
+.export-tip {
+  color: #007bff;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .export-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .export-controls {
+    justify-content: center;
+  }
+} 

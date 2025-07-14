@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Post
+from .models import Post, Comment
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -40,6 +40,23 @@ class PostSerializer(serializers.ModelSerializer):
         return value
 
 
+class CommentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Comment model
+    """
+    author_name = serializers.CharField(source='author.username', read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'content', 'created_at', 'author', 'author_name', 'post']
+        read_only_fields = ['id', 'created_at', 'author', 'author_name', 'post']
+
+
 class PostDetailSerializer(PostSerializer):
-    """Post Detail Serializers"""
-    pass 
+    """
+    Post Detail Serializer with nested comments
+    """
+    comments = CommentSerializer(many=True, read_only=True)
+
+    class Meta(PostSerializer.Meta):
+        fields = PostSerializer.Meta.fields + ['comments'] 

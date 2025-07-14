@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import Post
+from .models import Post, Comment
 
 
 class PostAdmin(admin.ModelAdmin):
@@ -33,5 +33,19 @@ class PostAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related('author', 'community')
 
 
+class CommentAdmin(admin.ModelAdmin):
+    """Comment Management Interface"""
+    list_display = ('author', 'post', 'content_preview', 'created_at')
+    list_filter = ('created_at', 'author', 'post')
+    search_fields = ('content', 'author__email', 'author__username', 'post__id')
+    ordering = ('-created_at',)
+    readonly_fields = ('created_at',)
+
+    def content_preview(self, obj):
+        return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
+    content_preview.short_description = 'Content Preview'
+
+
 # Registering Models
-admin.site.register(Post, PostAdmin) 
+admin.site.register(Post, PostAdmin)
+admin.site.register(Comment, CommentAdmin) 

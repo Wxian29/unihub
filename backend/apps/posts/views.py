@@ -1,8 +1,8 @@
 from rest_framework import generics, permissions, status
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Post
-from .serializers import PostSerializer, PostDetailSerializer
+from .models import Post, Comment
+from .serializers import PostSerializer, PostDetailSerializer, CommentSerializer
 
 
 class PostListView(generics.ListCreateAPIView):
@@ -70,3 +70,19 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context 
+
+
+class CommentListCreateView(generics.ListCreateAPIView):
+    """
+    API view to list and create comments for a post
+    """
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        post_id = self.kwargs.get('post_id')
+        return Comment.objects.filter(post_id=post_id)
+
+    def perform_create(self, serializer):
+        post_id = self.kwargs.get('post_id')
+        serializer.save(author=self.request.user, post_id=post_id) 

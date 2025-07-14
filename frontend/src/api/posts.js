@@ -44,4 +44,23 @@ export const updatePost = (id, data) => {
  */
 export const deletePost = (id) => {
   return api.delete(`/posts/${id}/`).then(res => res.data);
+};
+
+/**
+ * Fetch comments for a post
+ * @param {number|string} postId
+ * @returns {Promise<any[]>}
+ */
+export const fetchComments = (postId) => {
+  return api.get(`/posts/${postId}/comments/`).then(res => res.data);
+};
+
+/**
+ * Create a comment for a post
+ * @param {number|string} postId
+ * @param {object} data - { content: string }
+ * @returns {Promise<any>}
+ */
+export const createComment = (postId, data) => {
+  return api.post(`/posts/${postId}/comments/`, data).then(res => res.data);
 }; 

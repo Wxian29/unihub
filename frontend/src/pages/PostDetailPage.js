@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchPost, deletePost } from '../features/posts/postsSlice';
+import { fetchComments, createComment } from '../api/posts';
 import './PostDetailPage.css';
 
 const PostDetailPage = () => {
@@ -11,10 +12,48 @@ const PostDetailPage = () => {
   const { currentPost, loading, error, deleting } = useSelector((state) => state.posts);
   const { user } = useSelector((state) => state.auth);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [commentError, setCommentError] = useState('');
+  const [newComment, setNewComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
+  // Fetch post and comments
   useEffect(() => {
     dispatch(fetchPost(id));
+    loadComments();
+    // eslint-disable-next-line
   }, [dispatch, id]);
+
+  const loadComments = async () => {
+    setCommentLoading(true);
+    setCommentError('');
+    try {
+      const data = await fetchComments(id);
+      console.log('comments api response:', data); // Debug: print API response
+      setComments(data);
+    } catch (err) {
+      setCommentError('Failed to load comments');
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    setSubmitting(true);
+    setCommentError('');
+    try {
+      await createComment(id, { content: newComment });
+      setNewComment('');
+      await loadComments();
+    } catch (err) {
+      setCommentError(err?.response?.data?.detail || 'Failed to submit comment');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleEdit = () => {
     navigate(`/posts/${id}/edit`);
@@ -43,6 +82,11 @@ const PostDetailPage = () => {
   const isAuthor = () => {
     return user && currentPost && currentPost.author === user.id;
   };
+
+  // Robustly handle comments as array or paginated object
+  const commentArray = Array.isArray(comments)
+    ? comments
+    : (comments && Array.isArray(comments.results) ? comments.results : []);
 
   if (loading) {
     return <div className="post-detail-page"><div className="container"><div className="loading">Loading...</div></div></div>;
@@ -130,6 +174,50 @@ const PostDetailPage = () => {
               </div>
             </div>
           )}
+
+          {/* Comment Section */}
+          <div className="comments-section">
+            <h2>Comments</h2>
+            {commentLoading ? (
+              <div className="loading">Loading comments...</div>
+            ) : commentError ? (
+              <div className="error-message">{commentError}</div>
+            ) : commentArray.length === 0 ? (
+              <div className="no-comments">No comments yet.</div>
+            ) : (
+              <ul className="comments-list">
+                {commentArray.map((comment) => (
+                  <li key={comment.id} className="comment-item">
+                    <div className="comment-header">
+                      <span className="comment-author">{comment.author_name}</span>
+                      <span className="comment-time">{formatDate(comment.created_at)}</span>
+                    </div>
+                    <div className="comment-content">{comment.content}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Comment Form */}
+            {user ? (
+              <form className="comment-form" onSubmit={handleCommentSubmit}>
+                <textarea
+                  value={newComment}
+                  onChange={e => setNewComment(e.target.value)}
+                  placeholder="Write a comment..."
+                  rows={3}
+                  disabled={submitting}
+                  maxLength={500}
+                  required
+                />
+                <button className="btn btn-primary" type="submit" disabled={submitting || !newComment.trim()}>
+                  {submitting ? 'Submitting...' : 'Submit Comment'}
+                </button>
+              </form>
+            ) : (
+              <div className="login-to-comment">Please log in to comment.</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

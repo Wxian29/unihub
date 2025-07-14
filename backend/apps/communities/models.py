@@ -1,21 +1,21 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
 
 User = get_user_model()
 
 
 class Community(models.Model):
     """Community Model"""
-    name = models.CharField(_('Community Name'), max_length=100)
-    description = models.TextField(_('Community Description'), max_length=1000)
-    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_communities')
-    avatar = models.ImageField(_('Community Avatars'), upload_to='community_avatars/', blank=True, null=True)
-    cover_image = models.ImageField(_('Community Covers'), upload_to='community_covers/', blank=True, null=True)
-    is_public = models.BooleanField(_('Public'), default=True)
-    max_members = models.PositiveIntegerField(_('Maximum number of members'), default=1000)
-    created_at = models.DateTimeField(_('Creation time'), auto_now_add=True)
-    updated_at = models.DateTimeField(_('Update time'), auto_now=True)
+    name = models.CharField(max_length=100, verbose_name='Community Name')
+    description = models.TextField(verbose_name='Description')
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_communities', db_index=True)  # Indexed for fast creator queries
+    is_public = models.BooleanField(default=True, verbose_name='Public')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    cover_image = models.ImageField(upload_to='community_covers/', blank=True, null=True, verbose_name='Cover Image')
+    tags = models.ManyToManyField('InterestTag', blank=True, related_name='communities', verbose_name='Interest Tags')
     
     class Meta:
         verbose_name = 'Community'
@@ -23,32 +23,46 @@ class Community(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return str(self.name)
+        return self.name
+    
+    @property
+    def member_count(self):
+        return self.members.filter(is_active=True).count()
 
 
 class CommunityMember(models.Model):
-    """Community Member Model"""
     ROLE_CHOICES = [
-        ('admin', _('Admin')),
-        ('community_leader', _('Community Leader')),
-        ('member', _('Member')),
+        ('member', 'Member'),
+        ('admin', 'Admin'),
+        ('community_leader', 'Community Leader'),
     ]
     
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='community_memberships')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='community_memberships')
     community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name='members')
-    role = models.CharField(_('Role'), max_length=20, choices=ROLE_CHOICES, default='member')
-    joined_at = models.DateTimeField(_('Join Time'), auto_now_add=True)
-    is_active = models.BooleanField(_('Active'), default=True)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
+    joined_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
     
     class Meta:
+        unique_together = ('user', 'community')
         verbose_name = 'Community Member'
         verbose_name_plural = 'Community Members'
-        unique_together = ['user', 'community']
-        ordering = ['-joined_at']
     
     def __str__(self):
-        # Ensure all parts are string, avoid lazy object, and catch any error
-        try:
-            return f"{str(self.user.username)} - {str(self.community.name)} ({str(self.get_role_display())})"
-        except Exception:
-            return f"CommunityMember {self.pk}" 
+        return f"{self.user.username} - {self.community.name} ({self.role})"
+
+
+class InterestTag(models.Model):
+    """Interest tags for communities"""
+    name = models.CharField(max_length=50, unique=True, verbose_name='Tag Name')
+    description = models.TextField(blank=True, verbose_name='Description')
+    color = models.CharField(max_length=7, default='#007bff', verbose_name='Tag Color')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Interest Tag'
+        verbose_name_plural = 'Interest Tags'
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name 

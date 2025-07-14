@@ -68,7 +68,8 @@ const notificationSlice = createSlice({
       })
       .addCase(fetchNotifications.fulfilled, (state, action) => {
         state.loading = false;
-        state.notifications = action.payload;
+        // Handle paginated response format
+        state.notifications = action.payload.results || action.payload;
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
         state.loading = false;

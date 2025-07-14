@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchPosts, clearError } from '../features/posts/postsSlice';
+import { fetchUserCommunities } from '../features/community/communitySlice';
 import './PostsPage.css';
 
 const PostsPage = () => {
@@ -9,6 +10,7 @@ const PostsPage = () => {
   const navigate = useNavigate();
   const { posts, loading, error } = useSelector((state) => state.posts);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { userCommunities } = useSelector((state) => state.community);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all'); // all, my, community
 
@@ -19,6 +21,7 @@ const PostsPage = () => {
       if (searchTerm) params.search = searchTerm;
       if (filter === 'my') params.author_id = user?.id;
       dispatch(fetchPosts(params));
+      dispatch(fetchUserCommunities()); // fetch user's joined communities
     }
     
     // Clear error state when component unmounts
@@ -53,6 +56,20 @@ const PostsPage = () => {
 
   // Ensure posts is an array
   const postsArray = Array.isArray(posts) ? posts : [];
+
+  // Only show posts from joined communities or global posts
+  const joinedCommunityIds = Array.isArray(userCommunities)
+    ? userCommunities.map(c => c.id)
+    : [];
+  let visiblePosts = postsArray.filter(post => {
+    // Show global posts (no community) or posts from joined communities
+    return !post.community || joinedCommunityIds.includes(post.community);
+  });
+
+  // If filter is 'community', only show posts from joined communities (exclude global posts)
+  if (filter === 'community') {
+    visiblePosts = postsArray.filter(post => post.community && joinedCommunityIds.includes(post.community));
+  }
 
   // If user is not authenticated, show login prompt
   if (!isAuthenticated) {
@@ -115,7 +132,7 @@ const PostsPage = () => {
         {error && <div className="error-message">{error}</div>}
 
         <div className="posts-list">
-          {postsArray.length === 0 && !loading && (
+          {visiblePosts.length === 0 && !loading && (
             <div className="no-posts">
               <p>No posts yet</p>
               <button 
@@ -127,7 +144,7 @@ const PostsPage = () => {
             </div>
           )}
           
-          {postsArray.map((post) => (
+          {visiblePosts.map((post) => (
             <div className="post-card" key={post.id}>
               <div className="post-header">
                 <div className="post-author">

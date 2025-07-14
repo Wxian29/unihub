@@ -15,8 +15,8 @@ class Notification(models.Model):
     created_at = models.DateTimeField('Creation time', auto_now_add=True)
 
     class Meta:
-        verbose_name = 'notify'
-        verbose_name_plural = 'notify'
+        verbose_name = 'Notify'
+        verbose_name_plural = 'Notify'
         ordering = ['-created_at']
 
     def __str__(self):

@@ -5,6 +5,7 @@ from django.db.models import Q
 from .models import Event, EventParticipant
 from .serializers import EventSerializer, EventDetailSerializer
 from .permissions import IsEventOwnerOrCommunityAdmin
+from rest_framework import serializers
 
 
 class EventListView(generics.ListCreateAPIView):
@@ -14,7 +15,8 @@ class EventListView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        queryset = Event.objects.all()
+        # Use select_related to optimize creator and community queries
+        queryset = Event.objects.select_related('creator', 'community').all()
         
         # Search Function
         search = self.request.query_params.get('search', None)
@@ -49,6 +51,21 @@ class EventListView(generics.ListCreateAPIView):
         return queryset.order_by('-created_at')
     
     def perform_create(self, serializer):
+        # Check if user is a member of the selected community
+        community = serializer.validated_data.get('community')
+        if community:
+            from apps.communities.models import CommunityMember
+            is_member = CommunityMember.objects.filter(
+                user=self.request.user,
+                community=community,
+                is_active=True
+            ).exists()
+            
+            if not is_member:
+                raise serializers.ValidationError(
+                    "You can only create events in communities you are a member of."
+                )
+        
         serializer.save(creator=self.request.user)
 
 
@@ -61,6 +78,26 @@ class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method in ['PUT', 'PATCH', 'DELETE']:
             return [permissions.IsAuthenticated(), IsEventOwnerOrCommunityAdmin()]
         return [permissions.IsAuthenticated()]
+    
+    def update(self, request, *args, **kwargs):
+        # Check if user is trying to change the community
+        instance = self.get_object()
+        new_community = request.data.get('community')
+        
+        if new_community and new_community != instance.community.id:
+            from apps.communities.models import CommunityMember
+            is_member = CommunityMember.objects.filter(
+                user=request.user,
+                community_id=new_community,
+                is_active=True
+            ).exists()
+            
+            if not is_member:
+                raise serializers.ValidationError(
+                    "You can only move events to communities you are a member of."
+                )
+        
+        return super().update(request, *args, **kwargs)
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

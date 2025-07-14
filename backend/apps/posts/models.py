@@ -9,8 +9,8 @@ User = get_user_model()
 class Post(models.Model):
     """Post Model"""
     content = models.TextField(_('Content'))
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
-    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name='posts', null=True, blank=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts', db_index=True)  # Indexed for fast author queries
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name='posts', null=True, blank=True, db_index=True)  # Indexed for fast community queries
     image = models.ImageField(_('Image'), upload_to='post_images/', blank=True, null=True)
     created_at = models.DateTimeField(_('Creation time'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Update time'), auto_now=True)

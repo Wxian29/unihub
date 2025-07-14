@@ -7,7 +7,7 @@ import {
   clearError, 
   clearSuccessMessage 
 } from '../features/event/eventSlice';
-import { fetchCommunities } from '../features/community/communitySlice';
+import { fetchUserCommunities } from '../features/community/communitySlice';
 import './EventEditPage.css';
 
 const EventEditPage = () => {
@@ -15,7 +15,7 @@ const EventEditPage = () => {
   const navigate = useNavigate();
   const { eventId } = useParams();
   const { currentEvent, loading, error, successMessage } = useSelector((state) => state.event);
-  const { communities } = useSelector((state) => state.community);
+  const { userCommunities } = useSelector((state) => state.community);
   const { user } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
@@ -37,7 +37,7 @@ const EventEditPage = () => {
     if (eventId) {
       dispatch(fetchEventDetail(eventId));
     }
-    dispatch(fetchCommunities());
+    dispatch(fetchUserCommunities());
     
     return () => {
       dispatch(clearError());
@@ -284,13 +284,19 @@ const EventEditPage = () => {
                 className={errors.community ? 'error' : ''}
               >
                 <option value="">Select a community</option>
-                {communities.map(community => (
+                {userCommunities.map(community => (
                   <option key={community.id} value={community.id}>
                     {community.name}
                   </option>
                 ))}
               </select>
               {errors.community && <span className="error-message">{errors.community}</span>}
+              {userCommunities.length === 0 && (
+                <div className="info-message">
+                  You need to join a community before editing events. 
+                  <a href="/communities" className="link">Browse communities</a>
+                </div>
+              )}
             </div>
 
             <div className="form-group">

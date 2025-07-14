@@ -124,6 +124,7 @@ AUTH_USER_MODEL = 'users.User'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # Enable session auth
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -136,6 +137,11 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
     ),
 }
+
+# Session settings for better security and control
+SESSION_COOKIE_AGE = 60 * 60 * 2  # 2 hours
+SESSION_SAVE_EVERY_REQUEST = True  # Refresh session expiry on each request
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Expire session when browser closes
 
 # JWT settings
 from datetime import timedelta

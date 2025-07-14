@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchEvents, clearError } from '../features/event/eventSlice';
 import './EventsPage.css';
+import { joinEvent, updateEventStatus } from '../api/event';
+import useApi from '../hooks/useApi';
 
 const EventsPage = () => {
   const dispatch = useDispatch();
@@ -16,6 +18,19 @@ const EventsPage = () => {
     my_events: false,
     my_participations: false
   });
+
+  // Add hooks for join and status update
+  const {
+    loading: joining,
+    error: joinError,
+    request: handleJoinEvent
+  } = useApi(joinEvent);
+
+  const {
+    loading: updatingStatus,
+    error: statusError,
+    request: handleUpdateStatus
+  } = useApi(updateEventStatus);
 
   useEffect(() => {
     dispatch(fetchEvents(filters));
@@ -63,6 +78,26 @@ const EventsPage = () => {
       'cancelled': '#dc3545'
     };
     return colorMap[status] || '#999';
+  };
+
+  // Example: join event handler
+  const onJoinEvent = async (eventId) => {
+    try {
+      await handleJoinEvent(eventId);
+      dispatch(fetchEvents(filters)); // Refresh event list
+    } catch (e) {
+      // Error handled by useApi
+    }
+  };
+
+  // Example: update event status handler
+  const onUpdateStatus = async (eventId, newStatus) => {
+    try {
+      await handleUpdateStatus(eventId, newStatus);
+      dispatch(fetchEvents(filters)); // Refresh event list
+    } catch (e) {
+      // Error handled by useApi
+    }
   };
 
   return (
@@ -132,6 +167,10 @@ const EventsPage = () => {
 
         {loading && <div className="loading">Loading...</div>}
         {error && <div className="error-message">{error}</div>}
+        {joining && <div className="loading">Joining event...</div>}
+        {joinError && <div className="error-message">{joinError}</div>}
+        {updatingStatus && <div className="loading">Updating status...</div>}
+        {statusError && <div className="error-message">{statusError}</div>}
         
         <div className="event-list">
           {events.length === 0 && !loading && (

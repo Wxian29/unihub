@@ -39,7 +39,7 @@ const HomePage = () => {
             </div>
             <div className="feature-card">
               <div className="feature-icon">🔔</div>
-              <h3>Real-time Notifications</h3>
+              <h3>Real-time Notify</h3>
               <p>Get important updates in time and never miss any exciting content</p>
             </div>
           </div>

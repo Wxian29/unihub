@@ -38,7 +38,7 @@ const Header = () => {
             {isAuthenticated ? (
               <>
                 <Link to="/notifications" className="nav-link notification-link">
-                notify
+                Notify
                   {unreadCount > 0 && (
                     <span className="notification-badge">{unreadCount}</span>
                   )}

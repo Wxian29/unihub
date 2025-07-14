@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { createEvent, clearError, clearSuccessMessage } from '../features/event/eventSlice';
-import { fetchCommunities } from '../features/community/communitySlice';
+import { fetchUserCommunities } from '../features/community/communitySlice';
 import './EventCreatePage.css';
 
 const EventCreatePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error, successMessage } = useSelector((state) => state.event);
-  const { communities } = useSelector((state) => state.community);
+  const { userCommunities } = useSelector((state) => state.community);
   const { user } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
@@ -27,7 +27,7 @@ const EventCreatePage = () => {
   const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchCommunities());
+    dispatch(fetchUserCommunities());
     
     return () => {
       dispatch(clearError());
@@ -236,13 +236,19 @@ const EventCreatePage = () => {
                 className={errors.community ? 'error' : ''}
               >
                 <option value="">Select a community</option>
-                {communities.map(community => (
+                {userCommunities.map(community => (
                   <option key={community.id} value={community.id}>
                     {community.name}
                   </option>
                 ))}
               </select>
               {errors.community && <span className="error-message">{errors.community}</span>}
+              {userCommunities.length === 0 && (
+                <div className="info-message">
+                  You need to join a community before creating an event. 
+                  <a href="/communities" className="link">Browse communities</a>
+                </div>
+              )}
             </div>
 
             <div className="form-group">

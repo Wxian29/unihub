@@ -20,18 +20,29 @@ class PostListView(generics.ListCreateAPIView):
         serializer.save(author=self.request.user)
     
     def get_queryset(self):
+        # Use select_related to optimize author and community queries
         queryset = Post.objects.select_related('author', 'community').all()
-        
-        # Filter community post
+        user = self.request.user
+        is_platform_admin = user.is_superuser or user.is_staff
+
+        if not is_platform_admin:
+            from apps.communities.models import CommunityMember
+            from django.db import models
+            member_community_ids = CommunityMember.objects.filter(
+                user=user, is_active=True
+            ).values_list('community_id', flat=True)
+            queryset = queryset.filter(
+                models.Q(community__in=member_community_ids) |
+                models.Q(author=user) |
+                models.Q(community__isnull=True)
+            )
+
         community_id = self.request.query_params.get('community_id')
         if community_id:
             queryset = queryset.filter(community_id=community_id)
-        
-        # Filter personal post
         author_id = self.request.query_params.get('author_id')
         if author_id:
             queryset = queryset.filter(author_id=author_id)
-        
         return queryset
 
 
@@ -53,4 +64,9 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
             if obj.author != self.request.user:
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("You do not have permission to edit this post")
-        return obj 
+        return obj
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context 

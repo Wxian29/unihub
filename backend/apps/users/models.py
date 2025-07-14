@@ -5,6 +5,12 @@ from django.utils.translation import gettext_lazy as _
 
 class User(AbstractUser):
     """Extended User Model"""
+    ROLE_CHOICES = [
+        ('community_leader', 'Community Leader'),
+        ('admin', 'Admin'),
+        ('member', 'Member'),
+    ]
+    role = models.CharField(max_length=32, choices=ROLE_CHOICES, default='member')
     email = models.EmailField(_('Email'), unique=True)
     bio = models.TextField(_('Personal Profile'), max_length=500, blank=True)
     avatar = models.ImageField(_('Avatar'), upload_to='avatars/', blank=True, null=True)
@@ -21,6 +27,14 @@ class User(AbstractUser):
     
     def __str__(self):
         return str(self.email)
+
+    def save(self, *args, **kwargs):
+        # Automatic Sync is_staff
+        if self.role == 'admin':
+            self.is_staff = True
+        else:
+            self.is_staff = False
+        super().save(*args, **kwargs)
 
 
 class Profile(models.Model):

@@ -21,6 +21,7 @@ import PostsPage from './pages/PostsPage';
 import PostCreatePage from './pages/PostCreatePage';
 import PostDetailPage from './pages/PostDetailPage';
 import NotificationsPage from './pages/NotificationsPage';
+import PostEditPage from './pages/PostEditPage';
 import { getUserProfile, resetAuth } from './features/auth/authSlice';
 
 function App() {
@@ -48,7 +49,7 @@ function App() {
   }, [dispatch, navigate]);
 
   return (
-    <div className="App">
+    <>
       <Header />
       <main className="main-content">
         <Routes>
@@ -88,6 +89,14 @@ function App() {
             } 
           />
           <Route 
+            path="/communities/:id/post" 
+            element={
+              <ProtectedRoute>
+                <PostCreatePage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
             path="/posts" 
             element={
               <ProtectedRoute>
@@ -108,6 +117,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <PostDetailPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/posts/:id/edit" 
+            element={
+              <ProtectedRoute>
+                <PostEditPage />
               </ProtectedRoute>
             } 
           />
@@ -162,7 +179,7 @@ function App() {
         </Routes>
       </main>
       <Footer />
-    </div>
+    </>
   );
 }
 

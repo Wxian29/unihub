@@ -65,7 +65,44 @@ npm start
 - 📅 **Event Management**: Publish, browse, and join events
 - 💬 **Information Sharing**: Post updates and interact with others
 - 🔔 **Notification System**: Real-time notifications
-- 📱 **Responsive Design**: Multi-device support
+
+## Database CRUD Optimization & Containerization
+
+- All major models use indexed ForeignKey fields for fast queries (see `db_index=True` in models).
+- Views and services use `select_related` to optimize related object queries and avoid N+1 problems.
+- Critical operations (such as event participation) use `transaction.atomic` to ensure data consistency.
+- The database service in `docker-compose.yml` uses a persistent data volume (`db_data`) and a healthcheck for reliability.
+- Sensitive database credentials are managed via environment variables.
+
+### How to Deploy
+
+1. Copy `.env.example` to `.env` and set your `DB_PASSWORD` and other secrets.
+2. Run `docker-compose up -d` to start all services with persistent database storage and healthcheck.
+3. All CRUD operations are optimized for performance and reliability.
+
+## MVT Pattern in UniHub
+
+UniHub follows the Django MVT (Model-View-Template) pattern:
+
+- **Model**: Defines the data structure and business rules (see `models.py` in each app).
+- **View**: Handles HTTP requests, permissions, and delegates business logic to the service layer (see `views.py`).
+- **Template**: In this API-based project, serializers (`serializers.py`) serve as templates, formatting data for input/output.
+
+**Best Practices:**
+- Views are kept thin, focusing on request/response and delegating logic to services.
+- Models are responsible for data integrity and constraints.
+- Serializers ensure consistent data representation and validation.
+
+**Advantages:**
+- Clear separation of concerns
+- Easy to maintain and extend
+- Facilitates testing and code reuse
+
+**Limitations:**
+- In API projects, the Template role is replaced by serializers.
+- For complex UI, front-end frameworks (React) take over the traditional template role.
+
+This approach ensures UniHub is robust, maintainable, and scalable.
 
 ## Contributors
 

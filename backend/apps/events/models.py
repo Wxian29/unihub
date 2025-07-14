@@ -18,8 +18,8 @@ class Event(models.Model):
     
     title = models.CharField(_('Event Title'), max_length=200)
     description = models.TextField(_('Event Description'))
-    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name='events')
-    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_events')
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name='events', db_index=True)  # Indexed for fast community queries
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_events', db_index=True)  # Indexed for fast creator queries
     start_time = models.DateTimeField(_('Start Time'))
     end_time = models.DateTimeField(_('End Time'))
     location = models.CharField(_('Event Location'), max_length=200)

@@ -23,8 +23,8 @@ class Migration(migrations.Migration):
                 ('recipient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to=settings.AUTH_USER_MODEL, verbose_name='Receiver')),
             ],
             options={
-                'verbose_name': 'notify',
-                'verbose_name_plural': 'notify',
+                'verbose_name': 'Notify',
+                'verbose_name_plural': 'Notify',
                 'ordering': ['-created_at'],
             },
         ),

@@ -1,63 +1,74 @@
 from rest_framework import serializers
-from .models import Community, CommunityMember
+from .models import Community, CommunityMember, InterestTag
 from apps.posts.models import Post
+from apps.posts.serializers import PostSerializer
+from apps.users.serializers import UserSerializer
 
 
-class PostSerializer(serializers.ModelSerializer):
-    """Post Serializers"""
-    author_name = serializers.CharField(source='author.username', read_only=True)
-    author_avatar = serializers.CharField(source='author.avatar', read_only=True)
-    
+class InterestTagSerializer(serializers.ModelSerializer):
+    """Serializer for Interest Tags"""
     class Meta:
-        model = Post
-        fields = ['id', 'content', 'author', 'author_name', 'author_avatar', 'image', 'created_at']
-        read_only_fields = ['author', 'created_at']
+        model = InterestTag
+        fields = ['id', 'name', 'description', 'color', 'created_at']
+        read_only_fields = ['created_at']
 
 
 class CommunitySerializer(serializers.ModelSerializer):
-    """Community Serializer"""
+    creator = UserSerializer(read_only=True)
+    member_count = serializers.ReadOnlyField()
+    # Make tags writable: use PrimaryKeyRelatedField for editing
+    tags = serializers.PrimaryKeyRelatedField(queryset=InterestTag.objects.all(), many=True)
+    
+    class Meta:
+        model = Community
+        fields = ['id', 'name', 'description', 'creator', 'is_public', 'created_at', 'updated_at', 'cover_image', 'member_count', 'tags']
+        read_only_fields = ['created_at', 'updated_at', 'member_count']
+
+
+class CommunityMemberSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    community = CommunitySerializer(read_only=True)
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    
+    class Meta:
+        model = CommunityMember
+        fields = ['id', 'user', 'community', 'role', 'joined_at', 'is_active', 'user_name', 'user_email']
+        read_only_fields = ['joined_at']
+
+
+class CommunityDetailSerializer(serializers.ModelSerializer):
+    creator = UserSerializer(read_only=True)
+    members = serializers.SerializerMethodField()
+    member_count = serializers.ReadOnlyField()
+    # Make tags writable: use PrimaryKeyRelatedField for editing
+    tags = serializers.PrimaryKeyRelatedField(queryset=InterestTag.objects.all(), many=True)
     creator_name = serializers.CharField(source='creator.username', read_only=True)
-    member_count = serializers.SerializerMethodField()
     current_user_role = serializers.SerializerMethodField()
     
     class Meta:
         model = Community
-        fields = [
-            'id', 'name', 'description', 'creator', 'creator_name',
-            'avatar', 'cover_image', 'is_public', 'max_members',
-            'member_count', 'created_at', 'updated_at', 'current_user_role'
-        ]
-        read_only_fields = ['creator', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'description', 'creator', 'creator_name', 'is_public', 'created_at', 'updated_at', 'cover_image', 'members', 'member_count', 'tags', 'current_user_role']
+        read_only_fields = ['created_at', 'updated_at', 'member_count']
     
-    def get_member_count(self, obj):
-        return obj.members.filter(is_active=True).count()
+    def get_members(self, obj):
+        # Only return active members
+        active_members = obj.members.filter(is_active=True)
+        return CommunityMemberSerializer(active_members, many=True).data
+    
     def get_current_user_role(self, obj):
-        user = self.context.get('request').user
-        if not user or not user.is_authenticated:
-            return None
-        if user.is_superuser:
-            return 'admin'
-        membership = obj.members.filter(user=user, is_active=True).first()
-        if membership:
-            return membership.role
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            member = obj.members.filter(user=request.user, is_active=True).first()
+            return member.role if member else None
         return None
 
 
-class CommunityMemberSerializer(serializers.ModelSerializer):
-    """Community Member Serializer"""
-    user_name = serializers.CharField(source='user.username', read_only=True)
-    user_avatar = serializers.CharField(source='user.avatar', read_only=True)
+class PostSerializer(serializers.ModelSerializer):
+    """Post Serializer for Community Posts"""
+    author = UserSerializer(read_only=True)
     
     class Meta:
-        model = CommunityMember
-        fields = ['id', 'user', 'user_name', 'user_avatar', 'role', 'joined_at', 'is_active']
-        read_only_fields = ['joined_at']
-
-
-class CommunityDetailSerializer(CommunitySerializer):
-    """Community Details Serializer"""
-    members = CommunityMemberSerializer(many=True, read_only=True)
-    posts = PostSerializer(many=True, read_only=True)
-    
-    class Meta(CommunitySerializer.Meta):
-        fields = CommunitySerializer.Meta.fields + ['members', 'posts'] 
+        model = Post
+        fields = ['id', 'title', 'content', 'author', 'created_at', 'updated_at']
+        read_only_fields = ['author', 'created_at'] 

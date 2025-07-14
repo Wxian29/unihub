@@ -67,9 +67,10 @@ const CommunityDetailPage = () => {
 
   const isAdmin = () => {
     if (!user || !community) return false;
-    return community.current_user_role === 'admin' || 
-           community.current_user_role === 'community_leader' || 
-           user.is_superuser;
+    // Global admin, community_leader or super administrator can manage
+    if (user.role === 'admin' || user.role === 'community_leader' || user.is_superuser) return true;
+    // Compatible with the original logic
+    return community.current_user_role === 'admin' || community.current_user_role === 'community_leader';
   };
 
   if (loading) {
@@ -135,7 +136,12 @@ const CommunityDetailPage = () => {
             {community.posts && community.posts.length > 0 ? (
               <div className="posts-list">
                 {community.posts.map((post) => (
-                  <div className="post-card" key={post.id}>
+                  <div 
+                    className="post-card" 
+                    key={post.id} 
+                    onClick={() => navigate(`/posts/${post.id}`)} 
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="post-header">
                       <div className="post-author">
                         <span className="author-name">{post.author_name}</span>

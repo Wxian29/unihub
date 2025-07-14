@@ -8,6 +8,9 @@ from .serializers import (
     CommunitySerializer, CommunityDetailSerializer, CommunityMemberSerializer
 )
 from .permissions import IsCommunityAdmin
+from django.utils import timezone
+from .models import InterestTag
+from .serializers import InterestTagSerializer
 
 
 class CommunityListView(generics.ListCreateAPIView):
@@ -22,6 +25,14 @@ class CommunityListView(generics.ListCreateAPIView):
     
     def get_permissions(self):
         if self.request.method == 'POST':
+            # Only platform admins, community leaders, or community admins can create a community
+            from rest_framework.exceptions import PermissionDenied
+            from apps.communities.models import CommunityMember
+            user = self.request.user
+            is_platform_admin = user.is_authenticated and (user.is_staff or user.is_superuser)
+            is_community_leader_or_admin = CommunityMember.objects.filter(user=user, role__in=['community_leader', 'admin'], is_active=True).exists()
+            if not (is_platform_admin or is_community_leader_or_admin):
+                raise PermissionDenied('Only platform admins, community leaders, or community admins can create a community.')
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
     
@@ -35,8 +46,10 @@ class CommunityListView(generics.ListCreateAPIView):
 
 class CommunityDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Community details view"""
-    queryset = Community.objects.all()
     serializer_class = CommunityDetailSerializer
+    
+    def get_queryset(self):
+        return Community.objects.prefetch_related('members__user', 'tags').all()
     
     def get_permissions(self):
         if self.request.method in ['PUT', 'PATCH', 'DELETE']:
@@ -102,12 +115,20 @@ class CommunityMemberDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def join_community(request, community_id):
-    """Join the community"""
+    """Join the community (优化：支持重新加入)"""
     try:
         community = Community.objects.get(id=community_id)
+        # 检查是否已是活跃成员
         if community.members.filter(user=request.user, is_active=True).exists():
             return Response({'message': 'You are already a member of this community'}, status=status.HTTP_400_BAD_REQUEST)
-        
+        # 检查是否有历史成员记录
+        member = community.members.filter(user=request.user, is_active=False).first()
+        if member:
+            member.is_active = True
+            member.joined_at = timezone.now()  # 可选：重置加入时间
+            member.save()
+            return Response({'message': 'Successfully re-joined the community'}, status=status.HTTP_200_OK)
+        # 否则新建成员记录
         CommunityMember.objects.create(user=request.user, community=community)
         return Response({'message': 'Successfully joined the community'}, status=status.HTTP_201_CREATED)
     except Community.DoesNotExist:
@@ -128,4 +149,37 @@ def leave_community(request, community_id):
         membership.save()
         return Response({'message': 'Successfully exited the community'}, status=status.HTTP_200_OK)
     except CommunityMember.DoesNotExist:
-        return Response({'message': 'You are not a member of this community'}, status=status.HTTP_400_BAD_REQUEST) 
+        return Response({'message': 'You are not a member of this community'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class InterestTagListView(generics.ListCreateAPIView):
+    """Interest Tag List View"""
+    queryset = InterestTag.objects.all()
+    serializer_class = InterestTagSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            # Only staff can create tags
+            return [permissions.IsAuthenticated(), permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
+
+
+class InterestTagDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Interest Tag Detail View"""
+    queryset = InterestTag.objects.all()
+    serializer_class = InterestTagSerializer
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser()]
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def user_communities(request):
+    """Get communities that the current user is a member of"""
+    user_communities = Community.objects.filter(
+        members__user=request.user,
+        members__is_active=True
+    ).distinct()
+    
+    serializer = CommunitySerializer(user_communities, many=True, context={'request': request})
+    return Response(serializer.data) 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { createPost } from '../features/posts/postsSlice';
 import { fetchCommunities } from '../features/community/communitySlice';
 import './PostCreatePage.css';
@@ -12,6 +12,8 @@ const PostCreatePage = () => {
   const { communities } = useSelector((state) => state.community);
   const { user } = useSelector((state) => state.auth);
   
+  const { id: communityIdFromUrl } = useParams();
+
   const [formData, setFormData] = useState({
     content: '',
     community: '',
@@ -23,6 +25,16 @@ const PostCreatePage = () => {
   useEffect(() => {
     dispatch(fetchCommunities());
   }, [dispatch]);
+
+  useEffect(() => {
+    // If accessed from /communities/:id/post, pre-select the community
+    if (communityIdFromUrl) {
+      setFormData(prev => ({
+        ...prev,
+        community: communityIdFromUrl
+      }));
+    }
+  }, [communityIdFromUrl]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -97,6 +109,11 @@ const PostCreatePage = () => {
     }
   };
 
+  // Find the current community object if accessed from /communities/:id/post
+  const currentCommunity = communityIdFromUrl
+    ? communities.find(c => String(c.id) === String(communityIdFromUrl))
+    : null;
+
   return (
     <div className="post-create-page">
       <div className="container">
@@ -126,20 +143,29 @@ const PostCreatePage = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="community">Post to Community (optional)</label>
+              <label htmlFor="community">Post to Community {communityIdFromUrl ? '(locked)' : '(optional)'}</label>
               <select
                 id="community"
                 name="community"
                 value={formData.community}
                 onChange={handleChange}
-                disabled={creating}
+                disabled={creating || !!communityIdFromUrl} // disable if locked
               >
-                <option value="">Select Community</option>
-                {communities.map(community => (
-                  <option key={community.id} value={community.id}>
-                    {community.name}
+                {communityIdFromUrl ? (
+                  // Only show the current community as an option
+                  <option value={currentCommunity?.id || ''}>
+                    {currentCommunity?.name || 'Current Community'}
                   </option>
-                ))}
+                ) : (
+                  <>
+                    <option value="">Select Community</option>
+                    {communities.filter(c => c.current_user_role !== null).map(community => (
+                      <option key={community.id} value={community.id}>
+                        {community.name}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
 

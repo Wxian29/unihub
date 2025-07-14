@@ -43,7 +43,7 @@ const NotificationsPage = () => {
       <div className="notifications-page">
         <div className="container">
           <div className="auth-required">
-            <h1>Notification Center</h1>
+            <h1>Notify</h1>
             <p>Please log in to view notifications</p>
           </div>
         </div>
@@ -55,7 +55,7 @@ const NotificationsPage = () => {
     <div className="notifications-page">
       <div className="container">
         <div className="page-header">
-          <h1>Notification Center</h1>
+          <h1>Notify</h1>
         </div>
 
         {error && (

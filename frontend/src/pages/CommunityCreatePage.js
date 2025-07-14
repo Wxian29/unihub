@@ -1,18 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchTags } from '../features/community/communitySlice';
 import './CommunityCreatePage.css';
 
 const CommunityCreatePage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { tags } = useSelector((state) => state.community);
+  const tagList = Array.isArray(tags) ? tags : [];
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     is_public: true,
-    max_members: 100
+    max_members: 100,
+    tags: []
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    dispatch(fetchTags());
+  }, [dispatch]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -22,13 +32,23 @@ const CommunityCreatePage = () => {
     }));
   };
 
+  const handleTagsChange = (e) => {
+    const options = Array.from(e.target.selectedOptions);
+    setFormData(prev => ({
+      ...prev,
+      tags: options.map(opt => Number(opt.value))
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      await api.post('/communities/', formData);
+      const submitData = { ...formData };
+      // tags字段为id数组
+      await api.post('/communities/', submitData);
       navigate('/communities');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create community');
@@ -86,6 +106,25 @@ const CommunityCreatePage = () => {
                 max="1000"
                 disabled={loading}
               />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="tags">Interest Tags</label>
+              <select
+                id="tags"
+                name="tags"
+                multiple
+                value={formData.tags}
+                onChange={handleTagsChange}
+                disabled={loading}
+              >
+                {tagList.map(tag => (
+                  <option key={tag.id} value={tag.id}>
+                    {tag.name}
+                  </option>
+                ))}
+              </select>
+              <div className="hint">Hold Ctrl (Windows) or Command (Mac) to select multiple tags</div>
             </div>
 
             <div className="form-group checkbox-group">

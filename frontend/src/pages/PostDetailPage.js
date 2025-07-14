@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchPost, deletePost } from '../features/posts/postsSlice';
-import { fetchComments, createComment } from '../api/posts';
+import { fetchComments, createComment, likePost, unlikePost } from '../api/posts';
 import './PostDetailPage.css';
 
 const PostDetailPage = () => {
@@ -17,13 +17,32 @@ const PostDetailPage = () => {
   const [commentError, setCommentError] = useState('');
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
 
-  // Fetch post and comments
+  // Fetch post, comments, and like status
   useEffect(() => {
     dispatch(fetchPost(id));
     loadComments();
+    // Check like status and count
+    if (user) {
+      // Use currentPost.like_count if available, else fallback to 0
+      setLikeCount(currentPost?.like_count || 0);
+      // Check if user has liked (optional: can be improved by API)
+      fetch(`/api/v1/posts/${id}/likes/`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          const arr = Array.isArray(data) ? data : (data.results || []);
+          setLiked(arr.some(like => like.user === user.id));
+          setLikeCount(arr.length);
+        })
+        .catch(() => {});
+    }
     // eslint-disable-next-line
-  }, [dispatch, id]);
+  }, [dispatch, id, user]);
 
   const loadComments = async () => {
     setCommentLoading(true);
@@ -52,6 +71,26 @@ const PostDetailPage = () => {
       setCommentError(err?.response?.data?.detail || 'Failed to submit comment');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleLike = async () => {
+    if (!user) return;
+    setLikeLoading(true);
+    try {
+      if (liked) {
+        await unlikePost(id);
+        setLiked(false);
+        setLikeCount(likeCount > 0 ? likeCount - 1 : 0);
+      } else {
+        await likePost(id);
+        setLiked(true);
+        setLikeCount(likeCount + 1);
+      }
+    } catch (err) {
+      // Optionally show error
+    } finally {
+      setLikeLoading(false);
     }
   };
 
@@ -121,6 +160,18 @@ const PostDetailPage = () => {
                 <img src={currentPost.image} alt="Post image" />
               </div>
             )}
+          </div>
+
+          {/* Like Button and Count */}
+          <div className="like-section">
+            <button
+              className={`btn btn-outline btn-like${liked ? ' liked' : ''}`}
+              onClick={handleLike}
+              disabled={likeLoading || !user}
+            >
+              {liked ? 'Unlike' : 'Like'}
+            </button>
+            <span className="like-count">{likeCount} {likeCount === 1 ? 'Like' : 'Likes'}</span>
           </div>
 
           <div className="post-actions">

@@ -63,4 +63,31 @@ export const fetchComments = (postId) => {
  */
 export const createComment = (postId, data) => {
   return api.post(`/posts/${postId}/comments/`, data).then(res => res.data);
+};
+
+/**
+ * Like a post
+ * @param {number|string} postId
+ * @returns {Promise<any>}
+ */
+export const likePost = (postId) => {
+  return api.post(`/posts/${postId}/like/`).then(res => res.data);
+};
+
+/**
+ * Unlike a post
+ * @param {number|string} postId
+ * @returns {Promise<any>}
+ */
+export const unlikePost = (postId) => {
+  return api.post(`/posts/${postId}/unlike/`).then(res => res.data);
+};
+
+/**
+ * Fetch likes for a post
+ * @param {number|string} postId
+ * @returns {Promise<any[]>}
+ */
+export const fetchLikes = (postId) => {
+  return api.get(`/posts/${postId}/likes/`).then(res => res.data);
 }; 

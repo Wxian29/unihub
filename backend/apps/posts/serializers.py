@@ -1,17 +1,18 @@
 from rest_framework import serializers
-from .models import Post, Comment
+from .models import Post, Comment, Like
 
 
 class PostSerializer(serializers.ModelSerializer):
     """Post Serializers"""
     author_name = serializers.CharField(source='author.username', read_only=True)
     community_name = serializers.CharField(source='community.name', read_only=True)
+    like_count = serializers.IntegerField(read_only=True)
     
     class Meta:
         model = Post
         fields = [
             'id', 'content', 'author', 'author_name', 'community', 
-            'community_name', 'image', 'created_at', 'updated_at'
+            'community_name', 'image', 'created_at', 'updated_at', 'like_count'
         ]
         read_only_fields = ['author', 'created_at', 'updated_at']
 
@@ -52,11 +53,24 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'author', 'author_name', 'post']
 
 
+class LikeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Like model
+    """
+    user_name = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = Like
+        fields = ['id', 'user', 'user_name', 'post', 'created_at']
+        read_only_fields = ['id', 'user', 'user_name', 'post', 'created_at']
+
+
 class PostDetailSerializer(PostSerializer):
     """
     Post Detail Serializer with nested comments
     """
     comments = CommentSerializer(many=True, read_only=True)
+    like_count = serializers.IntegerField(read_only=True)
 
     class Meta(PostSerializer.Meta):
         fields = PostSerializer.Meta.fields + ['comments'] 

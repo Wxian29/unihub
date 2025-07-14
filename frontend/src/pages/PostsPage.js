@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchPosts, clearError } from '../features/posts/postsSlice';
 import { fetchUserCommunities } from '../features/community/communitySlice';
+import { likePost, unlikePost, fetchLikes, fetchComments } from '../api/posts';
 import './PostsPage.css';
 
 const PostsPage = () => {
@@ -13,6 +14,25 @@ const PostsPage = () => {
   const { userCommunities } = useSelector((state) => state.community);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all'); // all, my, community
+  const [likeStates, setLikeStates] = useState({}); // { [postId]: { liked: bool, count: number, loading: bool } }
+  const [commentsMap, setCommentsMap] = useState({}); // { [postId]: [comments] }
+
+  // Ensure posts is an array
+  const postsArray = Array.isArray(posts) ? posts : [];
+
+  // Only show posts from joined communities or global posts
+  const joinedCommunityIds = Array.isArray(userCommunities)
+    ? userCommunities.map(c => c.id)
+    : [];
+  let visiblePosts = postsArray.filter(post => {
+    // Show global posts (no community) or posts from joined communities
+    return !post.community || joinedCommunityIds.includes(post.community);
+  });
+
+  // If filter is 'community', only show posts from joined communities (exclude global posts)
+  if (filter === 'community') {
+    visiblePosts = postsArray.filter(post => post.community && joinedCommunityIds.includes(post.community));
+  }
 
   useEffect(() => {
     // Only fetch posts list when user is authenticated
@@ -29,6 +49,73 @@ const PostsPage = () => {
       dispatch(clearError());
     };
   }, [dispatch, searchTerm, filter, user, isAuthenticated]);
+
+  // Fetch likes and top 3 comments for visible posts
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchLikesAndComments = async () => {
+      const newLikeStates = {};
+      const newCommentsMap = {};
+      await Promise.all(visiblePosts.map(async (post) => {
+        // Likes
+        try {
+          const likes = await fetchLikes(post.id);
+          const arr = Array.isArray(likes) ? likes : (likes.results || []);
+          newLikeStates[post.id] = {
+            liked: user ? arr.some(like => like.user === user.id) : false,
+            count: arr.length,
+            loading: false
+          };
+        } catch {
+          newLikeStates[post.id] = { liked: false, count: post.like_count || 0, loading: false };
+        }
+        // Comments
+        try {
+          const comments = await fetchComments(post.id);
+          const arr = Array.isArray(comments) ? comments : (comments.results || []);
+          newCommentsMap[post.id] = arr.slice(0, 3);
+        } catch {
+          newCommentsMap[post.id] = [];
+        }
+      }));
+      setLikeStates(newLikeStates);
+      setCommentsMap(newCommentsMap);
+    };
+    fetchLikesAndComments();
+    // eslint-disable-next-line
+  }, [visiblePosts, user, isAuthenticated]);
+
+  const handleLike = async (postId) => {
+    if (!user) return;
+    setLikeStates(prev => ({ ...prev, [postId]: { ...prev[postId], loading: true } }));
+    try {
+      if (likeStates[postId]?.liked) {
+        await unlikePost(postId);
+        setLikeStates(prev => ({
+          ...prev,
+          [postId]: {
+            ...prev[postId],
+            liked: false,
+            count: Math.max((prev[postId]?.count || 1) - 1, 0),
+            loading: false
+          }
+        }));
+      } else {
+        await likePost(postId);
+        setLikeStates(prev => ({
+          ...prev,
+          [postId]: {
+            ...prev[postId],
+            liked: true,
+            count: (prev[postId]?.count || 0) + 1,
+            loading: false
+          }
+        }));
+      }
+    } catch {
+      setLikeStates(prev => ({ ...prev, [postId]: { ...prev[postId], loading: false } }));
+    }
+  };
 
   const handleCreatePost = () => {
     navigate('/posts/create');
@@ -53,23 +140,6 @@ const PostsPage = () => {
       return date.toLocaleDateString();
     }
   };
-
-  // Ensure posts is an array
-  const postsArray = Array.isArray(posts) ? posts : [];
-
-  // Only show posts from joined communities or global posts
-  const joinedCommunityIds = Array.isArray(userCommunities)
-    ? userCommunities.map(c => c.id)
-    : [];
-  let visiblePosts = postsArray.filter(post => {
-    // Show global posts (no community) or posts from joined communities
-    return !post.community || joinedCommunityIds.includes(post.community);
-  });
-
-  // If filter is 'community', only show posts from joined communities (exclude global posts)
-  if (filter === 'community') {
-    visiblePosts = postsArray.filter(post => post.community && joinedCommunityIds.includes(post.community));
-  }
 
   // If user is not authenticated, show login prompt
   if (!isAuthenticated) {
@@ -162,6 +232,33 @@ const PostsPage = () => {
                   <div className="post-image">
                     <img src={post.image} alt="Post image" />
                   </div>
+                )}
+              </div>
+
+              {/* Like Button and Count */}
+              <div className="like-section">
+                <button
+                  className={`btn btn-outline btn-like${likeStates[post.id]?.liked ? ' liked' : ''}`}
+                  onClick={() => handleLike(post.id)}
+                  disabled={likeStates[post.id]?.loading || !user}
+                >
+                  {likeStates[post.id]?.liked ? 'Unlike' : 'Like'}
+                </button>
+                <span className="like-count">{likeStates[post.id]?.count || 0} {likeStates[post.id]?.count === 1 ? 'Like' : 'Likes'}</span>
+              </div>
+
+              {/* Top 3 Comments */}
+              <div className="comments-preview">
+                {Array.isArray(commentsMap[post.id]) && commentsMap[post.id].length > 0 ? (
+                  <ul className="comments-list">
+                    {commentsMap[post.id].map(comment => (
+                      <li key={comment.id} className="comment-item">
+                        <span className="comment-author">{comment.author_name}:</span> <span className="comment-content">{comment.content}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="no-comments">No comments yet.</div>
                 )}
               </div>
               

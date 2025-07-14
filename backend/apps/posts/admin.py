@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import Post, Comment
+from .models import Post, Comment, Like
 
 
 class PostAdmin(admin.ModelAdmin):
@@ -46,6 +46,16 @@ class CommentAdmin(admin.ModelAdmin):
     content_preview.short_description = 'Content Preview'
 
 
+class LikeAdmin(admin.ModelAdmin):
+    """Like Management Interface"""
+    list_display = ('user', 'post', 'created_at')
+    list_filter = ('created_at', 'user', 'post')
+    search_fields = ('user__email', 'user__username', 'post__id')
+    ordering = ('-created_at',)
+    readonly_fields = ('created_at',)
+
+
 # Registering Models
 admin.site.register(Post, PostAdmin)
-admin.site.register(Comment, CommentAdmin) 
+admin.site.register(Comment, CommentAdmin)
+admin.site.register(Like, LikeAdmin) 

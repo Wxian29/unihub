@@ -41,3 +41,25 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.author.username} on Post {self.post.id}" 
+
+
+class Like(models.Model):
+    """
+    Like Model for Post
+    Each like is linked to a post and a user. A user can like a post only once.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'post')
+        verbose_name = 'Like'
+        verbose_name_plural = 'Likes'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} likes Post {self.post.id}"
+
+# Add a property to Post to get like count
+Post.add_to_class('like_count', property(lambda self: self.likes.count())) 

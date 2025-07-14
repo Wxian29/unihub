@@ -1,8 +1,11 @@
 from rest_framework import generics, permissions, status
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Post, Comment
-from .serializers import PostSerializer, PostDetailSerializer, CommentSerializer
+from .models import Post, Comment, Like
+from .serializers import PostSerializer, PostDetailSerializer, CommentSerializer, LikeSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 
 
 class PostListView(generics.ListCreateAPIView):
@@ -86,3 +89,51 @@ class CommentListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         post_id = self.kwargs.get('post_id')
         serializer.save(author=self.request.user, post_id=post_id) 
+
+
+class LikePostView(APIView):
+    """
+    API view to like a post
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, post_id):
+        user = request.user
+        try:
+            post = Post.objects.get(pk=post_id)
+        except Post.DoesNotExist:
+            return Response({'detail': 'Post not found.'}, status=status.HTTP_404_NOT_FOUND)
+        like, created = Like.objects.get_or_create(user=user, post=post)
+        if not created:
+            return Response({'detail': 'You have already liked this post.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Post liked.'}, status=status.HTTP_201_CREATED)
+
+class UnlikePostView(APIView):
+    """
+    API view to unlike a post
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, post_id):
+        user = request.user
+        try:
+            post = Post.objects.get(pk=post_id)
+        except Post.DoesNotExist:
+            return Response({'detail': 'Post not found.'}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            like = Like.objects.get(user=user, post=post)
+            like.delete()
+            return Response({'detail': 'Post unliked.'}, status=status.HTTP_200_OK)
+        except Like.DoesNotExist:
+            return Response({'detail': 'You have not liked this post.'}, status=status.HTTP_400_BAD_REQUEST)
+
+class PostLikesListView(generics.ListAPIView):
+    """
+    API view to list all likes for a post
+    """
+    serializer_class = LikeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        post_id = self.kwargs.get('post_id')
+        return Like.objects.filter(post_id=post_id) 
